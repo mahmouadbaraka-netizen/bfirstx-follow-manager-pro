@@ -1,0 +1,62 @@
+name: Build BFirstX Follow Manager Pro
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Extract project
+        run: |
+          rm -rf BFirstX-Follow-Manager-Pro
+          unzip -q BFirstX-Follow-Manager-Pro-Source.zip
+          test -f BFirstX-Follow-Manager-Pro/settings.gradle
+          test -f BFirstX-Follow-Manager-Pro/app/build.gradle
+          echo "Project extracted successfully"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v4
+
+      - name: Install Android SDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Build APK
+        run: |
+          gradle --no-daemon \
+            -p BFirstX-Follow-Manager-Pro \
+            :app:assembleDebug
+
+      - name: Prepare APK
+        run: |
+          cp \
+            BFirstX-Follow-Manager-Pro/app/build/outputs/apk/debug/app-debug.apk \
+            BFirstX-Follow-Manager-Pro.apk
+          ls -lh BFirstX-Follow-Manager-Pro.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BFirstX-Follow-Manager-Pro-APK
+          path: BFirstX-Follow-Manager-Pro.apk
+          if-no-files-found: error
